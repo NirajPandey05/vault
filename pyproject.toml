@@ -1,0 +1,55 @@
+[project]
+name = "vault"
+version = "0.2.0"
+description = "Self-managed Second Brain with AI-native memory, semantic search, and multi-database support"
+authors = [{name = "Your Name"}]
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.7.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "boto3>=1.34.0",           # AWS Bedrock
+    "numpy>=1.24.0",           # For SQLite vector operations
+]
+
+[project.optional-dependencies]
+# Database providers (install what you need)
+supabase = ["supabase>=2.3.0"]
+postgres = ["psycopg2-binary>=2.9.0", "pgvector>=0.2.4"]
+sqlite = []  # Uses built-in sqlite3 + numpy
+
+# Embedding providers
+openai = ["openai>=1.10.0"]
+
+# All optional features
+all = [
+    "supabase>=2.3.0",
+    "psycopg2-binary>=2.9.0",
+    "pgvector>=0.2.4",
+    "openai>=1.10.0",
+]
+
+# Development tools
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.12.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+vault = "vault.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
