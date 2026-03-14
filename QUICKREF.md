@@ -56,6 +56,10 @@ vault add "Decision made" --type decision
 # With tags
 vault add "Python is amazing" --tags "python,programming"
 
+# From file (.md or .txt)
+vault add --file notes.md
+vault add -f draft.txt --type reference --tags "imported,notes"
+
 # Combined
 vault add "Idea for new feature" --type idea --tags "features,roadmap"
 ```

@@ -89,10 +89,28 @@ Ensure AWS credentials are in `~/.aws/credentials` with Bedrock access.
 
 ### 4. Start Using
 
+**`vault add` command reference:**
+```
+Usage: vault add [OPTIONS] [CONTENT]
+
+  Add a new memory to your vault.
+
+Arguments:
+  [CONTENT]  Memory content (required unless --file is used)
+
+Options:
+  -f, --file PATH        Path to a .md or .txt file to import as memory content
+  --type TEXT            Memory type  [default: thought]
+  --project TEXT         Project name
+  --tags TEXT            Comma-separated tags
+```
+
 ```bash
 # Add memories
 vault add "Started working on Second Brain project"
 vault add "Idea: use vector embeddings for semantic search" --type idea
+vault add --file notes.md
+vault add -f meeting-notes.txt --type reference --tags "imported,meeting"
 
 # Search
 vault search "vector search"

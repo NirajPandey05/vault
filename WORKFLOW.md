@@ -41,6 +41,22 @@ vault add "Meeting notes: Product roadmap discussion at 2pm" --type reference --
 
 ### Throughout the Day
 
+**`vault add` accepts either inline text or a file (`--file/-f`):**
+```
+Usage: vault add [OPTIONS] [CONTENT]
+
+  Add a new memory to your vault.
+
+Arguments:
+  [CONTENT]  Memory content (required unless --file is used)
+
+Options:
+  -f, --file PATH        Path to a .md or .txt file to import as memory content
+  --type TEXT            Memory type  [default: thought]
+  --project TEXT         Project name
+  --tags TEXT            Comma-separated tags
+```
+
 **Capture thoughts immediately:**
 ```bash
 # Quick captures (< 30 seconds)
@@ -450,8 +466,7 @@ vault add "Result: Abstraction layer successful, migration is easy" --type progr
 vault search "topic" > topic-notes.md
 
 # Import from Obsidian
-# Copy markdown content and:
-vault add "$(cat obsidian-note.md)" --tags "imported,obsidian"
+vault add --file obsidian-note.md --tags "imported,obsidian"
 ```
 
 ### With Calendar/Tasks

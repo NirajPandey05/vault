@@ -1,5 +1,6 @@
 """CLI interface for Vault - Your Second Brain."""
 
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -24,12 +25,57 @@ console = Console()
 
 @app.command()
 def add(
-    content: str = typer.Argument(..., help="Memory content"),
+    content: Optional[str] = typer.Argument(
+        None, help="Memory content (required unless --file is used)"
+    ),
+    file: Optional[Path] = typer.Option(
+        None,
+        "--file",
+        "-f",
+        help="Path to a .md or .txt file to import as memory content",
+    ),
     type: str = typer.Option("thought", help="Memory type"),
     project: Optional[str] = typer.Option(None, help="Project name"),
     tags: Optional[str] = typer.Option(None, help="Comma-separated tags"),
 ):
     """Add a new memory to your vault."""
+    has_content = bool(content and content.strip())
+    has_file = file is not None
+
+    if has_content and has_file:
+        rprint("[red]Provide either inline content or --file, not both.[/red]")
+        raise typer.Exit(code=1)
+
+    if not has_content and not has_file:
+        rprint("[red]Provide content or --file PATH.[/red]")
+        raise typer.Exit(code=1)
+
+    if has_file:
+        if not file.exists() or not file.is_file():
+            rprint(f"[red]File not found or not a file: {file}[/red]")
+            raise typer.Exit(code=1)
+
+        if file.suffix.lower() not in {".md", ".txt"}:
+            rprint(
+                f"[red]Unsupported file type: {file.suffix or '(none)'}. Use .md or .txt.[/red]"
+            )
+            raise typer.Exit(code=1)
+
+        try:
+            resolved_content = file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            rprint(f"[red]Failed to read UTF-8 text from file: {file}[/red]")
+            raise typer.Exit(code=1)
+        except OSError as exc:
+            rprint(f"[red]Failed to read file '{file}': {exc}[/red]")
+            raise typer.Exit(code=1)
+
+        if not resolved_content.strip():
+            rprint(f"[red]File is empty: {file}[/red]")
+            raise typer.Exit(code=1)
+    else:
+        resolved_content = content.strip()
+
     db = VaultDB()
 
     # Parse tags
@@ -39,7 +85,11 @@ def add(
     project_id = UUID(project) if project else None
 
     memory = db.add_memory(
-        content=content, type=type, project_id=project_id, tags=tag_list
+        content=resolved_content,
+        type=type,
+        source="file" if has_file else "cli",
+        project_id=project_id,
+        tags=tag_list,
     )
 
     rprint(f"[green]✓[/green] Memory added: {memory.id}")
