@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vault Notes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #1f2933;
+      --muted: #687586;
+      --line: #d9e0e7;
+      --accent: #126c84;
+      --accent-strong: #0e5568;
+      --warn: #875314;
+      --shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    header {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, 1.1fr) minmax(360px, 0.9fr);
+      gap: 16px;
+      padding: 16px;
+      max-width: 1480px;
+      margin: 0 auto;
+      min-height: calc(100vh - 56px);
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .editor, .browser { padding: 16px; }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .followup {
+      display: none;
+      padding: 10px 12px;
+      border: 1px solid #d6b46d;
+      background: #fff7df;
+      border-radius: 6px;
+      color: var(--warn);
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .followup.active { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+
+    textarea {
+      min-height: 430px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .file-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .file-row input { padding: 8px; }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+    button.text { border-color: transparent; background: transparent; color: var(--muted); }
+    button.text:hover { color: var(--accent); }
+
+    .status { color: var(--muted); font-size: 13px; min-height: 20px; }
+
+    .search-controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .filters label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 500; }
+    .filters input { width: auto; }
+
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 190px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .memory-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .memory-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .memory-content {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.38;
+      max-height: 96px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .memory-content.expanded { max-height: none; }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .tag {
+      border: 1px solid #cfd8df;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 12px;
+      color: #405261;
+      background: #f8fafb;
+    }
+
+    .doc-row {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 6px;
+      background: #f3f7f8;
+      color: #244957;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .doc-row.active { display: flex; }
+
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      textarea { min-height: 320px; }
+      .results { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Vault Notes</h1>
+    <button id="refreshBtn" type="button">Refresh</button>
+  </header>
+
+  <main>
+    <section class="editor">
+      <div class="section-title">
+        <h2>New Note</h2>
+        <span id="draftStatus" class="status">Draft saved locally</span>
+      </div>
+
+      <div id="followupBox" class="followup">
+        <span id="followupText"></span>
+        <button id="clearFollowupBtn" class="text" type="button">Clear</button>
+      </div>
+
+      <label for="content">Note</label>
+      <textarea id="content" placeholder="Write the note here..."></textarea>
+
+      <div class="grid">
+        <div>
+          <label for="type">Type</label>
+          <select id="type">
+            <option value="thought">thought</option>
+            <option value="idea">idea</option>
+            <option value="progress">progress</option>
+            <option value="decision">decision</option>
+            <option value="question">question</option>
+            <option value="workflow">workflow</option>
+            <option value="reference">reference</option>
+          </select>
+        </div>
+        <div>
+          <label for="tags">Tags</label>
+          <input id="tags" placeholder="ai, security, postgres" />
+        </div>
+      </div>
+
+      <div class="file-row">
+        <div style="flex: 1;">
+          <label for="doc">Linked document</label>
+          <input id="doc" type="file" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="clearDraftBtn" type="button">Clear Draft</button>
+        <button id="saveBtn" class="primary" type="button">Save to Vault</button>
+      </div>
+      <div id="saveStatus" class="status"></div>
+    </section>
+
+    <section class="browser">
+      <div class="section-title">
+        <h2>Find Context</h2>
+      </div>
+      <div class="search-controls">
+        <input id="search" placeholder="Search memories or leave empty for recent" />
+        <button id="searchBtn" type="button">Search</button>
+      </div>
+      <div class="filters">
+        <label><input id="docsOnly" type="checkbox" /> Only with documents</label>
+        <span id="resultStatus"></span>
+      </div>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+
+  <script>
+    const draftKey = "vault-ui-draft-v1";
+    const state = { followup: null, debounce: null };
+
+    const el = {
+      content: document.getElementById("content"),
+      type: document.getElementById("type"),
+      tags: document.getElementById("tags"),
+      doc: document.getElementById("doc"),
+      search: document.getElementById("search"),
+      docsOnly: document.getElementById("docsOnly"),
+      results: document.getElementById("results"),
+      saveStatus: document.getElementById("saveStatus"),
+      draftStatus: document.getElementById("draftStatus"),
+      resultStatus: document.getElementById("resultStatus"),
+      followupBox: document.getElementById("followupBox"),
+      followupText: document.getElementById("followupText"),
+    };
+
+    function saveDraft() {
+      const draft = {
+        content: el.content.value,
+        type: el.type.value,
+        tags: el.tags.value,
+        followup: state.followup,
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+      el.draftStatus.textContent = "Draft saved locally";
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      try {
+        const draft = JSON.parse(raw);
+        el.content.value = draft.content || "";
+        el.type.value = draft.type || "thought";
+        el.tags.value = draft.tags || "";
+        state.followup = draft.followup || null;
+        renderFollowup();
+      } catch (_) {}
+    }
+
+    function clearDraft() {
+      el.content.value = "";
+      el.type.value = "thought";
+      el.tags.value = "";
+      el.doc.value = "";
+      state.followup = null;
+      localStorage.removeItem(draftKey);
+      renderFollowup();
+      el.saveStatus.textContent = "";
+    }
+
+    function renderFollowup() {
+      if (!state.followup) {
+        el.followupBox.classList.remove("active");
+        return;
+      }
+      el.followupText.textContent = `Follow-up to: ${state.followup.content.slice(0, 90)}`;
+      el.followupBox.classList.add("active");
+    }
+
+    function scheduleDraftSave() {
+      el.draftStatus.textContent = "Saving draft...";
+      clearTimeout(state.debounce);
+      state.debounce = setTimeout(saveDraft, 250);
+    }
+
+    async function saveMemory() {
+      const content = el.content.value.trim();
+      if (!content) {
+        el.saveStatus.textContent = "Write a note before saving.";
+        return;
+      }
+
+      const form = new FormData();
+      form.append("content", content);
+      form.append("type", el.type.value);
+      form.append("tags", el.tags.value);
+      if (state.followup) form.append("extends_memory_id", state.followup.id);
+      if (el.doc.files[0]) form.append("doc", el.doc.files[0]);
+
+      el.saveStatus.textContent = "Saving to Vault...";
+      const response = await fetch("/api/memory", { method: "POST", body: form });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Save failed" }));
+        el.saveStatus.textContent = error.detail || "Save failed";
+        return;
+      }
+
+      const saved = await response.json();
+      clearDraft();
+      el.saveStatus.textContent = `Saved: ${saved.id}`;
+      await loadResults();
+    }
+
+    async function loadResults() {
+      const params = new URLSearchParams();
+      const q = el.search.value.trim();
+      if (q) params.set("q", q);
+      params.set("limit", "12");
+      if (el.docsOnly.checked) params.set("docs_only", "true");
+
+      el.resultStatus.textContent = "Loading...";
+      const response = await fetch(`/api/memories?${params.toString()}`);
+      const data = await response.json();
+      renderResults(data.items || []);
+      el.resultStatus.textContent = `${(data.items || []).length} shown`;
+    }
+
+    function renderResults(items) {
+      el.results.innerHTML = "";
+      if (!items.length) {
+        el.results.innerHTML = `<div class="status">No memories found.</div>`;
+        return;
+      }
+
+      for (const item of items) {
+        const card = document.createElement("article");
+        card.className = "memory-card";
+
+        const created = new Date(item.created_at).toLocaleString();
+        const similarity = item.similarity == null ? "recent" : `${Math.round(item.similarity * 100)}% match`;
+        const tags = (item.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+        const docName = item.doc_path ? item.doc_path.split(/[\\/]/).pop() : "";
+
+        card.innerHTML = `
+          <div class="memory-top">
+            <span>${escapeHtml(similarity)} · ${escapeHtml(item.type)} · ${escapeHtml(created)}</span>
+            <span>${escapeHtml(item.id.slice(0, 8))}</span>
+          </div>
+          <div class="memory-content">${escapeHtml(item.content)}</div>
+          <div class="tag-list">${tags}</div>
+          <div class="doc-row ${item.doc_path ? "active" : ""}">
+            <strong>Document:</strong> <span>${escapeHtml(docName || item.doc_path || "")}</span>
+          </div>
+          <div class="card-actions">
+            <button data-action="toggle">View Full Note</button>
+            <button data-action="follow">Add Follow-up</button>
+            ${item.doc_path ? `<button data-action="open-doc">Open Doc</button><button data-action="copy-doc">Copy Path</button>` : ""}
+          </div>
+        `;
+
+        card.querySelector('[data-action="toggle"]').addEventListener("click", () => {
+          card.querySelector(".memory-content").classList.toggle("expanded");
+        });
+        card.querySelector('[data-action="follow"]').addEventListener("click", () => beginFollowup(item));
+        const openDoc = card.querySelector('[data-action="open-doc"]');
+        if (openDoc) openDoc.addEventListener("click", () => openDocument(item.id));
+        const copyDoc = card.querySelector('[data-action="copy-doc"]');
+        if (copyDoc) copyDoc.addEventListener("click", () => navigator.clipboard.writeText(item.doc_path));
+
+        el.results.appendChild(card);
+      }
+    }
+
+    function beginFollowup(item) {
+      state.followup = item;
+      el.type.value = item.type || "thought";
+      el.tags.value = (item.tags || []).join(", ");
+      renderFollowup();
+      saveDraft();
+      el.content.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function openDocument(id) {
+      await fetch(`/api/doc/${id}/open`, { method: "POST" });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("saveBtn").addEventListener("click", saveMemory);
+    document.getElementById("clearDraftBtn").addEventListener("click", clearDraft);
+    document.getElementById("clearFollowupBtn").addEventListener("click", () => { state.followup = null; renderFollowup(); saveDraft(); });
+    document.getElementById("searchBtn").addEventListener("click", loadResults);
+    document.getElementById("refreshBtn").addEventListener("click", loadResults);
+    el.search.addEventListener("input", () => { clearTimeout(state.debounce); state.debounce = setTimeout(loadResults, 350); });
+    el.docsOnly.addEventListener("change", loadResults);
+    [el.content, el.type, el.tags].forEach(node => node.addEventListener("input", scheduleDraftSave));
+
+    loadDraft();
+    loadResults();
+  </script>
+</body>
+</html>
