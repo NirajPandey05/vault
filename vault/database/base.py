@@ -223,6 +223,21 @@ class DatabaseProvider(ABC):
         """
         pass
 
+    # ========== Memory Link Operations ==========
+
+    @abstractmethod
+    def add_memory_link(self, data: dict) -> dict:
+        """
+        Create a relationship between two memories.
+
+        Args:
+            data: Link data (from_memory_id, to_memory_id, relation_type)
+
+        Returns:
+            Created memory link record as dict
+        """
+        pass
+
     # ========== Migration Operations ==========
 
     @abstractmethod

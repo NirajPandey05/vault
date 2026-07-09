@@ -20,6 +20,27 @@ app = typer.Typer(
 console = Console()
 
 
+@app.command()
+def ui(
+    port: int = typer.Option(8765, help="Local port for the browser UI"),
+    host: str = typer.Option("127.0.0.1", help="Host interface for the browser UI"),
+):
+    """Launch the local browser note-taking UI."""
+    import webbrowser
+
+    try:
+        import uvicorn
+    except ImportError:
+        rprint("[red]UI dependencies are not installed.[/red]")
+        rprint("Run: pip install -e \".[ui]\"")
+        raise typer.Exit(code=1)
+
+    url = f"http://{host}:{port}"
+    rprint(f"[green]Starting Vault UI:[/green] {url}")
+    webbrowser.open(url)
+    uvicorn.run("vault.ui.server:app", host=host, port=port, reload=False)
+
+
 # ========== Memory Commands ==========
 
 
@@ -33,6 +54,12 @@ def add(
         "--file",
         "-f",
         help="Path to a .md or .txt file to import as memory content",
+    ),
+    doc: Optional[Path] = typer.Option(
+        None,
+        "--doc",
+        "-d",
+        help="Path to any file to link to this memory (stored in vault_store/)",
     ),
     type: str = typer.Option("thought", help="Memory type"),
     project: Optional[str] = typer.Option(None, help="Project name"),
@@ -76,6 +103,10 @@ def add(
     else:
         resolved_content = content.strip()
 
+    if doc is not None and (not doc.exists() or not doc.is_file()):
+        rprint(f"[red]Document not found: {doc}[/red]")
+        raise typer.Exit(code=1)
+
     db = VaultDB()
 
     # Parse tags
@@ -90,11 +121,14 @@ def add(
         source="file" if has_file else "cli",
         project_id=project_id,
         tags=tag_list,
+        doc=doc,
     )
 
     rprint(f"[green]✓[/green] Memory added: {memory.id}")
     rprint(f"  Type: {memory.type}")
     rprint(f"  Tags: {', '.join(memory.tags) if memory.tags else 'none'}")
+    if memory.doc_path:
+        rprint(f"  📎 Doc: {memory.doc_path}")
 
 
 @app.command()
@@ -117,16 +151,18 @@ def search(
     table.add_column("Type", style="green", width=10)
     table.add_column("Content", style="white")
     table.add_column("Tags", style="yellow")
+    table.add_column("Doc", style="blue", width=6)
 
     for result in results:
         similarity_pct = f"{result.similarity * 100:.1f}%"
-        tags_str = ", ".join(result.memory.tags[:3])  # Show first 3 tags
+        tags_str = ", ".join(result.memory.tags[:3])
         content_preview = (
             result.memory.content[:80] + "..."
             if len(result.memory.content) > 80
             else result.memory.content
         )
-        table.add_row(similarity_pct, result.memory.type, content_preview, tags_str)
+        doc_indicator = "📎" if result.memory.doc_path else ""
+        table.add_row(similarity_pct, result.memory.type, content_preview, tags_str, doc_indicator)
 
     console.print(table)
     rprint(f"\n[dim]Model: {results[0].embedding_model}[/dim]")
@@ -150,6 +186,7 @@ def recent(
     table.add_column("Date", style="cyan", width=20)
     table.add_column("Type", style="green", width=10)
     table.add_column("Content", style="white")
+    table.add_column("Doc", style="blue", width=6)
 
     for memory in memories:
         date_str = memory.created_at.strftime("%Y-%m-%d %H:%M")
@@ -158,9 +195,61 @@ def recent(
             if len(memory.content) > 80
             else memory.content
         )
-        table.add_row(date_str, memory.type, content_preview)
+        doc_indicator = "📎" if memory.doc_path else ""
+        table.add_row(date_str, memory.type, content_preview, doc_indicator)
 
     console.print(table)
+
+
+# ========== Doc Commands ==========
+
+doc_app = typer.Typer(help="Manage linked documents")
+app.add_typer(doc_app, name="doc")
+
+
+@doc_app.command("open")
+def doc_open(memory_id: str = typer.Argument(..., help="Memory ID whose doc to open")):
+    """Open the document linked to a memory with the OS default viewer."""
+    import os
+    import subprocess
+
+    db = VaultDB()
+    memory = db.get_memory(UUID(memory_id))
+
+    if memory is None:
+        rprint(f"[red]Memory not found: {memory_id}[/red]")
+        raise typer.Exit(code=1)
+
+    if not memory.doc_path:
+        rprint("[yellow]No document linked to this memory.[/yellow]")
+        raise typer.Exit(code=1)
+
+    path = Path(memory.doc_path)
+    if not path.exists():
+        rprint(f"[red]Document file not found at: {path}[/red]")
+        raise typer.Exit(code=1)
+
+    rprint(f"Opening: {path}")
+    if os.name == "nt":
+        os.startfile(str(path))
+    else:
+        subprocess.run(["xdg-open", str(path)], check=False)
+
+
+@doc_app.command("show")
+def doc_show(memory_id: str = typer.Argument(..., help="Memory ID to show doc path for")):
+    """Show the document path linked to a memory."""
+    db = VaultDB()
+    memory = db.get_memory(UUID(memory_id))
+
+    if memory is None:
+        rprint(f"[red]Memory not found: {memory_id}[/red]")
+        raise typer.Exit(code=1)
+
+    if not memory.doc_path:
+        rprint("[yellow]No document linked to this memory.[/yellow]")
+    else:
+        rprint(f"📎 [cyan]{memory.doc_path}[/cyan]")
 
 
 # ========== Project Commands ==========

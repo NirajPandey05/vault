@@ -12,6 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "boto3>=1.34.0",           # AWS Bedrock
     "numpy>=1.24.0",           # For SQLite vector operations
+    "mcp>=1.0.0",              # Model Context Protocol SDK
 ]
 
 [project.optional-dependencies]
@@ -22,6 +23,8 @@ sqlite = []  # Uses built-in sqlite3 + numpy
 
 # Embedding providers
 openai = ["openai>=1.10.0"]
+google = ["google-genai>=2.0.0"]
+ui = ["fastapi>=0.110.0", "uvicorn>=0.27.0", "python-multipart>=0.0.9"]
 
 # All optional features
 all = [
@@ -29,6 +32,10 @@ all = [
     "psycopg2-binary>=2.9.0",
     "pgvector>=0.2.4",
     "openai>=1.10.0",
+    "google-genai>=2.0.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.0",
+    "python-multipart>=0.0.9",
 ]
 
 # Development tools
@@ -41,6 +48,7 @@ dev = [
 
 [project.scripts]
 vault = "vault.cli:app"
+vault-mcp = "vault.mcp_server:run_server"
 
 [build-system]
 requires = ["hatchling"]

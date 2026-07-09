@@ -197,6 +197,7 @@ class Memory(BaseModel):
     tags: list[str] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)  # Store media URLs, dimensions, etc.
     file_path: str | None = None  # Path to associated .md file
+    doc_path: str | None = None  # Relative path inside vault_store/ for linked documents
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

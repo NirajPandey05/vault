@@ -17,7 +17,7 @@ from datetime import date, datetime
 from typing import Any, Sequence
 from uuid import UUID
 
-from mcp.server import Server
+from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
@@ -488,7 +488,7 @@ async def main():
                 server_name="vault-mcp",
                 server_version="0.1.0",
                 capabilities=server.get_capabilities(
-                    notification_options=None,
+                    notification_options=NotificationOptions(),
                     experimental_capabilities={},
                 ),
             ),

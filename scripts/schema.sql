@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS memories (
 CREATE TABLE IF NOT EXISTS embeddings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     memory_id UUID REFERENCES memories(id) ON DELETE CASCADE,
-    vector VECTOR(1536),                 -- Standard 1536 dimensions (OpenAI compatible)
-    model_name VARCHAR(100) NOT NULL,    -- 'bedrock-titan-v2', 'openai-small', etc.
+    vector VECTOR(3072),                 -- 3072 dimensions (Google gemini-embedding-001)
+    model_name VARCHAR(100) NOT NULL,    -- 'google-embed', 'bedrock-titan', etc.
     model_version VARCHAR(50),           -- Model version for tracking
     is_active BOOLEAN DEFAULT true,      -- Current primary embedding for this memory
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -62,8 +62,9 @@ CREATE INDEX IF NOT EXISTS idx_embeddings_memory ON embeddings(memory_id);
 CREATE INDEX IF NOT EXISTS idx_embeddings_model ON embeddings(model_name);
 CREATE INDEX IF NOT EXISTS idx_embeddings_active ON embeddings(memory_id, is_active) WHERE is_active = true;
 
--- Vector similarity index (IVFFlat for fast approximate search)
-CREATE INDEX IF NOT EXISTS idx_embeddings_vector ON embeddings USING ivfflat (vector vector_cosine_ops) WITH (lists = 100);
+-- Note: pgvector ANN indexes (ivfflat/hnsw) are limited to 2000 dimensions.
+-- With 3072-dim Google embeddings, search uses exact KNN (sequential scan).
+-- This is fine for personal-scale usage (thousands of entries).
 
 -- Projects indexes
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
@@ -104,7 +105,7 @@ WHERE e.is_active = true;
 
 -- Helper function: Search by similarity
 CREATE OR REPLACE FUNCTION search_memories(
-    query_embedding VECTOR(1536),
+    query_embedding VECTOR(3072),
     model_filter VARCHAR(100),
     limit_count INTEGER DEFAULT 10
 )

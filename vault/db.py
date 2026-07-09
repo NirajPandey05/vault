@@ -1,12 +1,14 @@
 """High-level database operations for Vault."""
 
+import shutil
+from pathlib import Path
 from uuid import UUID
 
 from .config import get_config
 from .database import get_database_provider
 from .database.base import DatabaseProvider
 from .embeddings.factory import get_embedding_provider
-from .models import Embedding, Memory, Project, SearchResult
+from .models import Embedding, Memory, MemoryLink, Project, SearchResult
 
 
 class VaultDB:
@@ -26,8 +28,23 @@ class VaultDB:
         project_id: UUID | None = None,
         tags: list[str] | None = None,
         auto_embed: bool = True,
+        doc: Path | None = None,
     ) -> Memory:
         """Add a new memory and optionally generate an embedding."""
+        doc_path: str | None = None
+        if doc is not None:
+            store = self.config.vault_store_path
+            store.mkdir(parents=True, exist_ok=True)
+            # Unique filename: <memory-placeholder> resolved after insert, use file stem + suffix
+            dest = store / doc.name
+            # If a file with that name already exists, prefix with a short hash
+            if dest.exists():
+                import hashlib
+                h = hashlib.sha1(doc.read_bytes()).hexdigest()[:8]
+                dest = store / f"{h}_{doc.name}"
+            shutil.copy2(doc, dest)
+            doc_path = str(dest)
+
         memory_data = {
             "content": content,
             "type": type,
@@ -35,6 +52,7 @@ class VaultDB:
             "project_id": str(project_id) if project_id else None,
             "tags": tags or [],
             "metadata": {},
+            "doc_path": doc_path,
         }
 
         memory = Memory(**self.db.add_memory(memory_data))
@@ -89,6 +107,7 @@ class VaultDB:
                 content=item["content"],
                 type=item["type"],
                 tags=item.get("tags", []),
+                doc_path=item.get("doc_path"),
                 created_at=item["created_at"],
                 source="cli",
             )
@@ -121,6 +140,22 @@ class VaultDB:
     def get_project_memories(self, project_id: UUID) -> list[Memory]:
         """Get all memories associated with a project."""
         return [Memory(**item) for item in self.db.get_project_memories(project_id)]
+
+    # ========== Memory Link Operations ==========
+
+    def add_memory_link(
+        self,
+        from_memory_id: UUID,
+        to_memory_id: UUID,
+        relation_type: str = "extends",
+    ) -> MemoryLink:
+        """Create a relationship between two memories."""
+        link_data = {
+            "from_memory_id": str(from_memory_id),
+            "to_memory_id": str(to_memory_id),
+            "relation_type": relation_type,
+        }
+        return MemoryLink(**self.db.add_memory_link(link_data))
 
     # ========== Migration Operations ==========
 

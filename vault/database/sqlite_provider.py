@@ -391,6 +391,36 @@ class SQLiteProvider(DatabaseProvider):
         cursor.execute("SELECT * FROM projects WHERE id = ?", (str(project_id),))
         return self._row_to_dict(cursor.fetchone())
 
+    # ========== Memory Link Operations ==========
+
+    def add_memory_link(self, data: dict) -> dict:
+        """Create a relationship between two memories."""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO memory_links (from_memory_id, to_memory_id, relation_type)
+            VALUES (?, ?, ?)
+            """,
+            (
+                str(data["from_memory_id"]),
+                str(data["to_memory_id"]),
+                data.get("relation_type", "extends"),
+            ),
+        )
+        self.conn.commit()
+        cursor.execute(
+            """
+            SELECT * FROM memory_links
+            WHERE from_memory_id = ? AND to_memory_id = ? AND relation_type = ?
+            """,
+            (
+                str(data["from_memory_id"]),
+                str(data["to_memory_id"]),
+                data.get("relation_type", "extends"),
+            ),
+        )
+        return self._row_to_dict(cursor.fetchone())
+
     # ========== Migration Operations ==========
 
     def get_all_memories_for_migration(self) -> List[dict]:

@@ -38,6 +38,12 @@ class Config(BaseSettings):
         description="Path to SQLite database file",
     )
 
+    # Document Store Configuration
+    vault_store_path: Path = Field(
+        default=Path("vault_store"),
+        description="Directory for linked documents (relative to working dir)",
+    )
+
     # AWS Configuration
     aws_region: str = Field(default="us-east-1", description="AWS region for Bedrock")
     aws_profile: str = Field(default="default", description="AWS profile name")
@@ -45,8 +51,11 @@ class Config(BaseSettings):
     # OpenAI Configuration (optional)
     openai_api_key: str | None = Field(default=None, description="OpenAI API key")
 
+    # Google Configuration (optional)
+    google_api_key: str | None = Field(default=None, description="Google Generative AI API key")
+
     # Embedding Configuration
-    embedding_provider: Literal["bedrock-titan", "openai-small", "openai-large"] = Field(
+    embedding_provider: Literal["bedrock-titan", "openai-small", "openai-large", "google-embed"] = Field(
         default="bedrock-titan", description="Active embedding provider"
     )
     embedding_dimension: int = Field(
@@ -76,6 +85,12 @@ class Config(BaseSettings):
                 "model_id": "text-embedding-3-large",
                 "dimensions": 3072,
                 "cost_per_1k_tokens": 0.00013,
+            },
+            "google-embed": {
+                "provider": "google",
+                "model_id": "models/gemini-embedding-001",
+                "dimensions": 3072,
+                "cost_per_1k_tokens": 0.00001,
             },
         }
         return models.get(model_name, models["bedrock-titan"])

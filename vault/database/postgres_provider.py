@@ -29,8 +29,8 @@ class PostgresProvider(DatabaseProvider):
             raise ImportError("psycopg2 required. Install: pip install psycopg2-binary pgvector")
 
         self.conn = psycopg2.connect(connection_string)
-        register_vector(self.conn)
         self.conn.autocommit = False
+        register_vector(self.conn)
 
     def _execute_query(self, query: str, params: tuple = (), fetch: str = "all") -> List[dict] | dict | None:
         """Execute a query and return results as dict(s)."""
@@ -52,9 +52,9 @@ class PostgresProvider(DatabaseProvider):
     def add_memory(self, data: dict) -> dict:
         """Insert a new memory."""
         query = """
-            INSERT INTO memories (content, type, source, project_id, tags, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id, content, type, source, project_id, tags, metadata, created_at, updated_at
+            INSERT INTO memories (content, type, source, project_id, tags, metadata, doc_path)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, content, type, source, project_id, tags, metadata, doc_path, created_at, updated_at
         """
         params = (
             data["content"],
@@ -63,6 +63,7 @@ class PostgresProvider(DatabaseProvider):
             data.get("project_id"),
             data.get("tags", []),
             json.dumps(data.get("metadata", {})),
+            data.get("doc_path"),
         )
         result = self._execute_query(query, params, fetch="one")
         self.conn.commit()
@@ -124,7 +125,7 @@ class PostgresProvider(DatabaseProvider):
         query = """
             INSERT INTO embeddings (memory_id, vector, model_name, model_version, is_active)
             VALUES (%s, %s, %s, %s, %s)
-            RETURNING id, memory_id, model_name, model_version, is_active, created_at
+            RETURNING id, memory_id, vector, model_name, model_version, is_active, created_at
         """
         params = (
             str(data["memory_id"]),
@@ -162,6 +163,7 @@ class PostgresProvider(DatabaseProvider):
                 m.content,
                 m.type,
                 m.tags,
+                m.doc_path,
                 1 - (e.vector <=> %s::vector) AS similarity,
                 m.created_at
             FROM embeddings e
@@ -251,6 +253,26 @@ class PostgresProvider(DatabaseProvider):
             RETURNING *
         """
         result = self._execute_query(query, tuple(params), fetch="one")
+        self.conn.commit()
+        return result
+
+    # ========== Memory Link Operations ==========
+
+    def add_memory_link(self, data: dict) -> dict:
+        """Create a relationship between two memories."""
+        query = """
+            INSERT INTO memory_links (from_memory_id, to_memory_id, relation_type)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (from_memory_id, to_memory_id, relation_type) DO UPDATE
+            SET relation_type = EXCLUDED.relation_type
+            RETURNING id, from_memory_id, to_memory_id, relation_type, created_at
+        """
+        params = (
+            str(data["from_memory_id"]),
+            str(data["to_memory_id"]),
+            data.get("relation_type", "extends"),
+        )
+        result = self._execute_query(query, params, fetch="one")
         self.conn.commit()
         return result
 

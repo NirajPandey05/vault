@@ -20,6 +20,7 @@ def get_embedding_provider(provider_name: str | None = None) -> "EmbeddingProvid
     """
     from .bedrock import BedrockTitanProvider
     from .openai_provider import OpenAIProvider
+    from .google_provider import GoogleEmbeddingProvider
 
     config = get_config()
     provider_name = provider_name or config.embedding_provider
@@ -44,6 +45,13 @@ def get_embedding_provider(provider_name: str | None = None) -> "EmbeddingProvid
             api_key=config.openai_api_key,
             model_id="text-embedding-3-large",
             dimensions=1536,  # Can go up to 3072, but we standardize
+        )
+    elif provider_name == "google-embed":
+        return GoogleEmbeddingProvider(
+            model_name=provider_name,
+            api_key=config.google_api_key,
+            model_id="models/gemini-embedding-001",
+            dimensions=3072,
         )
     else:
         raise ValueError(f"Unknown embedding provider: {provider_name}")

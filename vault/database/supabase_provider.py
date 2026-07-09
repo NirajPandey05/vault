@@ -164,6 +164,20 @@ class SupabaseProvider(DatabaseProvider):
         )
         return response.data[0]
 
+    # ========== Memory Link Operations ==========
+
+    def add_memory_link(self, data: dict) -> dict:
+        """Create a relationship between two memories."""
+        response = self.client.table("memory_links").upsert(
+            {
+                "from_memory_id": str(data["from_memory_id"]),
+                "to_memory_id": str(data["to_memory_id"]),
+                "relation_type": data.get("relation_type", "extends"),
+            },
+            on_conflict="from_memory_id,to_memory_id,relation_type",
+        ).execute()
+        return response.data[0]
+
     # ========== Migration Operations ==========
 
     def get_all_memories_for_migration(self) -> List[dict]:
